@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PayeeCategory {
+  SCHOOL
+  LANDLORD
+  HOSPITAL
+  UTILITY
+  OTHER
+}
+
+enum RemittanceStatus {
+  PENDING
+  CLAIMED
+  REJECTED
+  REFUNDED
+}
+
+model Payee {
+  address      String        @id
+  name         String
+  category     PayeeCategory
+  verified     Boolean       @default(false)
+  registeredAt DateTime
+  updatedAt    DateTime      @updatedAt
+
+  @@index([category])
+  @@index([verified])
+}
+
+model Remittance {
+  // Same id as on chain
+  id         Int              @id
+  sender     String
+  // Plain column, not a foreign key, so an event for a payee indexed later never fails
+  payee      String
+  token      String
+  // Stored as string because i128 does not fit in a Postgres bigint
+  amount     String
+  reference  String
+  expiresAt  DateTime
+  status     RemittanceStatus @default(PENDING)
+  sentAt     DateTime
+  sentTx     String
+  settledAt  DateTime?
+  settledTx  String?
+  updatedAt  DateTime         @updatedAt
+
+  @@index([sender])
+  @@index([payee])
+  @@index([status])
+}
+
+// One row per contract. Lets the indexer resume where it stopped.
+model IndexerCursor {
+  contractId String   @id
+  lastLedger Int
+  updatedAt  DateTime @updatedAt
+}
