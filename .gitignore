@@ -6,3 +6,8 @@ coverage/
 !.env.example
 .DS_Store
 *.log
+
+# Editors and build info
+.vscode/
+.idea/
+*.tsbuildinfo
