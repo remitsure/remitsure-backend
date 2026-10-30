@@ -10,7 +10,7 @@ Thanks for helping out. RemitSure takes part in [Drips Wave](https://www.drips.n
 
 ## Setup
 
-You need Node 20+ and a Postgres database (local, or a free one from Neon or Supabase).
+You need Node 22.12+ and a Postgres database (local, or a free one from Neon or Supabase).
 
 ```bash
 cp .env.example .env     # fill in DATABASE_URL and REMITSURE_CONTRACT_ID
