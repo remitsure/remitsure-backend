@@ -20,6 +20,8 @@ export interface Indexer {
 }
 
 const PAGE_LIMIT = 200;
+/** Save the cursor on quiet polls at most this often (about 5 minutes of ledgers). */
+const QUIET_SAVE_EVERY = 60;
 
 const RETENTION_ERROR = /startLedger must be within the ledger range: (\d+) - (\d+)/;
 
@@ -39,6 +41,7 @@ export function oldestRetainedLedger(err: unknown): number | null {
 export function createIndexer(opts: IndexerOptions): Indexer {
   const server = new rpc.Server(opts.rpcUrl);
   let lastLedger: number | null = null;
+  let savedLedger: number | null = null;
   let running = false;
   let timer: NodeJS.Timeout | undefined;
   let inFlight: Promise<void> | undefined;
@@ -81,12 +84,20 @@ export function createIndexer(opts: IndexerOptions): Indexer {
         });
         await saveCursor(tx, opts.contractId, ev.ledger);
       });
+      savedLedger = ev.ledger;
       opts.log.info({ event: describe(decoded) }, "indexed event");
     }
 
     // Move the cursor even when nothing happened, so the next poll does not rescan.
     const done = res.events.length < PAGE_LIMIT ? res.latestLedger : res.events.at(-1)!.ledger;
     lastLedger = done;
+
+    // Persist quiet progress too, otherwise a restart after a long quiet spell resumes
+    // from the last event and can land outside RPC retention.
+    if (savedLedger === null || done - savedLedger >= QUIET_SAVE_EVERY) {
+      await saveCursor(opts.db, opts.contractId, done);
+      savedLedger = done;
+    }
   }
 
   function schedule() {
