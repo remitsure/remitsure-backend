@@ -43,7 +43,7 @@ npm run dev              # http://localhost:4000/health
 
 ## Deploying
 
-`render.yaml` sets up the API and a free Postgres on Render. Set `REMITSURE_CONTRACT_ID`, `INDEXER_START_LEDGER` and `CORS_ORIGINS` in the dashboard.
+`render.yaml` sets up the API on Render. The database is a free Postgres on Neon, because Render's free Postgres is suspended after 30 days. Set `DATABASE_URL` (the Neon connection string), `REMITSURE_CONTRACT_ID`, `INDEXER_START_LEDGER` and `CORS_ORIGINS` in the dashboard.
 
 ## License
 
