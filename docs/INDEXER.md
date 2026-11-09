@@ -7,7 +7,7 @@ The contract is the source of truth. The backend only keeps a read optimised cop
 1. Every `INDEXER_POLL_MS`, call Soroban RPC `getEvents` for `REMITSURE_CONTRACT_ID`, starting one ledger after the saved cursor.
 2. Decode each event with `src/indexer/events.ts`. Unknown events are skipped.
 3. Apply it with `src/indexer/persist.ts` and save the cursor in the same database transaction.
-4. If nothing came back, move the cursor to the latest ledger so the next poll is cheap.
+4. If nothing came back, move the cursor to the latest ledger so the next poll is cheap. Quiet progress is saved to the database about every 60 ledgers, so a restart does not rescan days of empty ledgers.
 
 Every write is an upsert keyed on the RPC event id, so replaying a range is safe.
 
@@ -15,7 +15,7 @@ Every write is an upsert keyed on the RPC event id, so replaying a range is safe
 
 With no saved cursor the indexer starts at `INDEXER_START_LEDGER`, or the latest ledger if that is empty. Set it to the deploy ledger of the contract to backfill.
 
-Soroban RPC only keeps about 7 days of events. If the service is down longer than that, events are lost and a backfill from an archive source is needed. This is a known gap.
+Soroban RPC only keeps about 7 days of events. If the service is down longer than that, the saved cursor falls outside the range the RPC still has. The indexer then logs a warning with the skipped ledger range and continues from the oldest ledger the RPC has, instead of failing on every poll. Events in the skipped range are not indexed and need a backfill from an archive source. This is a known gap.
 
 ## Running it
 
