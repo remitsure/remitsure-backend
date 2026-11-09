@@ -1,4 +1,6 @@
-# Render blueprint: one web service (API plus in process indexer) and a free Postgres.
+# Render blueprint: one web service (API plus in process indexer).
+# Postgres is hosted outside Render (Neon free tier does not expire), so DATABASE_URL is set
+# by hand in the dashboard.
 services:
   - type: web
     name: remitsure-backend
@@ -11,9 +13,7 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: DATABASE_URL
-        fromDatabase:
-          name: remitsure-db
-          property: connectionString
+        sync: false
       - key: STELLAR_NETWORK
         value: testnet
       - key: SOROBAN_RPC_URL
@@ -26,7 +26,3 @@ services:
         sync: false
       - key: INDEXER_ENABLED
         value: "true"
-
-databases:
-  - name: remitsure-db
-    plan: free
