@@ -21,6 +21,20 @@ export interface Indexer {
 
 const PAGE_LIMIT = 200;
 
+const RETENTION_ERROR = /startLedger must be within the ledger range: (\d+) - (\d+)/;
+
+/**
+ * RPC only keeps about 7 days of events. When the cursor is older than that, getEvents
+ * rejects with a plain `{ code, message }` object naming the range it still has.
+ * Returns the oldest ledger it still has, or null for any other error.
+ */
+export function oldestRetainedLedger(err: unknown): number | null {
+  const message =
+    typeof err === "object" && err !== null && "message" in err ? String(err.message) : "";
+  const match = RETENTION_ERROR.exec(message);
+  return match ? Number(match[1]) : null;
+}
+
 /** Polls Soroban RPC for contract events and writes them to Postgres. */
 export function createIndexer(opts: IndexerOptions): Indexer {
   const server = new rpc.Server(opts.rpcUrl);
@@ -36,12 +50,24 @@ export function createIndexer(opts: IndexerOptions): Indexer {
     return (await server.getLatestLedger()).sequence;
   }
 
-  async function tick(): Promise<void> {
-    const startLedger = lastLedger === null ? await resolveStartLedger() : lastLedger + 1;
-    const res = await server.getEvents({
+  const fetchEvents = (startLedger: number) =>
+    server.getEvents({
       startLedger,
       filters: [{ type: "contract", contractIds: [opts.contractId] }],
       limit: PAGE_LIMIT,
+    });
+
+  async function tick(): Promise<void> {
+    const startLedger = lastLedger === null ? await resolveStartLedger() : lastLedger + 1;
+    const res = await fetchEvents(startLedger).catch((err: unknown) => {
+      const oldest = oldestRetainedLedger(err);
+      if (oldest === null || oldest <= startLedger) throw err;
+      // Waiting will never help, the gap only grows. Skip ahead and say so loudly.
+      opts.log.warn(
+        { from: startLedger, to: oldest - 1 },
+        "indexer cursor is older than RPC retention, events in this range were not indexed",
+      );
+      return fetchEvents(oldest);
     });
 
     for (const ev of res.events) {
