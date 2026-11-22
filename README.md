@@ -35,6 +35,24 @@ npm run dev              # http://localhost:4000/health
 | `npm run check`      | Typecheck, lint, format check, tests      |
 | `npm run db:migrate` | Create and apply a migration              |
 
+## Environment variables
+
+All variables are parsed and validated by `src/config.ts`. `.env.example` lists them with example values.
+
+| Variable                | Default                               | Required | What it does                                 |
+| ----------------------- | ------------------------------------- | -------- | -------------------------------------------- |
+| `PORT`                  | `4000`                                | No       | Port the API listens on                      |
+| `HOST`                  | `0.0.0.0`                             | No       | Interface the API binds to                   |
+| `LOG_LEVEL`             | `info`                                | No       | Pino log level: `fatal`–`trace`              |
+| `CORS_ORIGINS`          | `http://localhost:3000`               | No       | Comma-separated allowed frontend origins     |
+| `DATABASE_URL`          | —                                     | Yes      | Postgres connection string                   |
+| `STELLAR_NETWORK`       | `testnet`                             | No       | `testnet` or `mainnet`                       |
+| `SOROBAN_RPC_URL`       | `https://soroban-testnet.stellar.org` | No       | Soroban RPC endpoint                         |
+| `REMITSURE_CONTRACT_ID` | —                                     | No       | Soroban contract ID (starts with `C`)        |
+| `INDEXER_ENABLED`       | `true`                                | No       | Run the event indexer inside the API process |
+| `INDEXER_POLL_MS`       | `5000`                                | No       | Indexer poll interval in ms (minimum `1000`) |
+| `INDEXER_START_LEDGER`  | —                                     | No       | Ledger to start from; empty = latest ledger  |
+
 ## Docs
 
 - [API reference](docs/API.md)
